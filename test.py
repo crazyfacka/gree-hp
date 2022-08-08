@@ -13,20 +13,25 @@ FIND_MSG = {
     't': 'scan'
 }
 
-def parse_msg(sock):
-    while True:
-        data, addr = sock.recvfrom(1024)
-        decoded_data = json.loads(str(data, 'utf-8'))
-        decoded_pack64 = base64.b64decode(decoded_data['pack'])
-
-        cipher = AES.new(bytes(AES_KEY, 'utf-8'), AES.MODE_ECB)
-        print(cipher.decrypt(decoded_pack64))
-
+### Initialization ###
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
 sock.bind(('0.0.0.0', HP_PORT))
+###
 
-b_find_msg = json.dumps(FIND_MSG).encode('utf-8')
-sock.sendto(b_find_msg, (HP_IP, HP_PORT))
+def parse_msg(msg):
+    decoded_pack64 = base64.b64decode(msg['pack'])
+    cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
+    return cipher.decrypt(decoded_pack64)[:-2]
 
-parse_msg(sock)
+def send_msg(msg):
+    b_msg = json.dumps(msg).encode('utf-8')
+    sock.sendto(b_msg, (HP_IP, HP_PORT))
+
+def receive_msg(sock):
+    data, addr = sock.recvfrom(1024)
+    decoded_data = json.loads(data)
+    return decoded_data
+
+send_msg(FIND_MSG)
+pack = parse_msg(receive_msg(sock))
+print(json.loads(pack))
