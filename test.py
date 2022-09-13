@@ -32,21 +32,31 @@ BIND_PACK = {
     # Add 'mac' with MAC address
 }
 
+# Status message
+STATUS_MSG = {
+    'cid': 'app',
+    'i': 0,
+    't': 'pack',
+    'uid': 0
+    # Add 'pack'
+    # Add 'tcid' with MAC address
+}
+
 ### Initialization
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('0.0.0.0', HP_PORT))
 cipher = AES.new(AES_KEY.encode('utf-8'), AES.MODE_ECB)
 
 ### Decoding pack embedded in device's response
-def parse_msg(msg):
+def parse_msg(msg, _cipher = cipher):
     decoded_pack64 = base64.b64decode(msg)
-    decrypted_pack = unpad(cipher.decrypt(decoded_pack64), BLOCK_SIZE)
+    decrypted_pack = unpad(_cipher.decrypt(decoded_pack64), BLOCK_SIZE)
     return json.loads(decrypted_pack)
 
 ### Encoding pack to send in device's message
-def enc_msg(msg):
+def enc_msg(msg, _cipher = cipher):
     b_msg = json.dumps(msg).encode('utf-8')
-    encoded_pack = cipher.encrypt(pad(b_msg, BLOCK_SIZE))
+    encoded_pack = _cipher.encrypt(pad(b_msg, BLOCK_SIZE))
     return base64.b64encode(encoded_pack).decode()
 
 ### Sending sock message
@@ -83,3 +93,30 @@ pack = parse_msg(msg['pack'])
 msg['pack'] = pack
 
 print('#2', msg)
+print()
+
+### Device specific encryption
+DEVICE_KEY = pack['key']
+device_cipher = AES.new(DEVICE_KEY.encode('utf-8'), AES.MODE_ECB)
+
+# 3. Status
+status_pack = {
+    'mac': pack['mac'],
+    't': 'status',
+    'cols': [
+        'Pow',
+        'TemUn',
+        "HeatCoolType"
+    ]
+}
+
+final_status_msg = STATUS_MSG.copy()
+final_status_msg['tcid'] = pack['mac']
+final_status_msg['pack'] = enc_msg(status_pack, device_cipher)
+
+send_msg(final_status_msg)
+msg = receive_msg(sock)
+pack = parse_msg(msg['pack'], device_cipher)
+msg['pack'] = pack
+
+print('#3', msg)
