@@ -1,0 +1,11 @@
+{
+    "domain": "gree_hp",
+    "name": "Gree Heat Pump",
+    "config_flow": true,
+    "requirements": ["pycryptodome==3.15.0"],
+    "documentation": "https://github.com/crazyfacka/gree-hp/blob/main/README.md",
+    "issue_tracker": "https://github.com/crazyfacka/gree-hp/issues",
+    "codeowners": ["crazyfacka"],
+    "iot_class": "local_polling",
+    "version": "0.0.1"
+}
